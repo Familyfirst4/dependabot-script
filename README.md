@@ -1,13 +1,16 @@
-# Dependabot Update Script
+### _WARNING - Scripts are Currently Broken_
+_We recently refactored the monolithic docker image used within the [Dependabot Core][dependabot-core] library into one-image-per-ecosystem. Unfortunately, that broke the scripts in this repo, and we haven't had time to update them yet. We are aware of the problem and hope to provide a solution soon._
 
-This repo contains two scripts that demonstrate
-[Dependabot Core][dependabot-core]. It is intended to give you a feel for how
-Dependabot Core works so that you can use it in your own project.
+# Dependabot Script
 
-If you're looking for a hosted, feature-rich dependency updater then you
-probably want [Dependabot][dependabot] itself.
+This repo is a collection of scripts to use as entrypoints to the [Dependabot Core][dependabot-core] library. It is intended as a starting point for advanced users to run a self-hosted version of Dependabot within their own projects.
 
-## Setup and usage
+If you're looking for a hassle-free Dependabot experience, check out the hosted [Dependabot Service][dependabot service].
+
+### Note: Community Maintained Project
+This is a community-maintained project. As such, the Dependabot team at GitHub will review PR contributions to update this repo, but is unable to provide further support such as debugging why something doesn't work. 
+
+## Local setup and usage
 
 ```shell
 rbenv install # (Install Ruby version from ./.ruby-version)
@@ -64,6 +67,7 @@ Variable Name             | Default          | Notes
 `PROJECT_PATH`            | N/A (Required) | Path to repository. Usually in the format `<namespace>/<project>`.
 `BRANCH         `         | N/A (Optional) | Branch to fetch manifest from and open pull requests against.
 `PULL_REQUESTS_ASSIGNEE`  | N/A (Optional) | User to assign to the created pull request.
+`OPTIONS`                 | `{}`           | JSON options to customize the operation of Dependabot
 
 There are other variables that you must pass to your container that will depend on the Git source you use:
 
@@ -116,6 +120,10 @@ There are a few ways of running the script:
   * interactively with `./update-script.rb`,
   * non-interactively with `./generic-update-script.rb`,
   * and non-interactively using Docker.
+
+You can also set it up to run as part of your repositories workflows
+  * [GitHub Actions Standalone](#github-actions-standalone)
+  * [GitLab](#gitlab-ci)
 
 #### Running `update-script.rb` (GitHub only)
 
@@ -177,7 +185,7 @@ Parsing dependencies information
 #### Running scripts with dependabot-core Dockerfile only
 
 The dependabot-core `Dockerfile` installs dependencies as the `dependabot` user,
-so volume mouning won't work unless you build the image by passing in the
+so volume mounting won't work unless you build the image by passing in the
 `USER_UID` and `USER_GID` arguments. This creates the `dependabot` user with the
 same IDs ensuring it owns the mounted files and can write to them from within
 the container.
@@ -209,6 +217,20 @@ docker run -v "$(pwd):/home/dependabot/dependabot-script" -w /home/dependabot/de
 ```
 docker run --rm -v "$(pwd):/home/dependabot/dependabot-script" -w /home/dependabot/dependabot-script -e ENV_VARIABLE=value dependabot/dependabot-core bundle exec ruby ./generic-update-script.rb
 ```
+### GitHub Actions Standalone
+The easiest and most common way to run Dependabot on GitHub is using the built-in
+Dependabot service as described [here](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions). This is recommended for most users.
+
+However, sometimes you may need to run Dependabot manually either for testing, or to enable features/plugins that are
+not currently available in Dependabot. This is relatively straight-forward to achieve with a shell-based GitHub action.
+
+  * In your GitHub repository, create a directory `.github/workflows` if it doesn't already exist.
+  * Copy [manual-github-actions.yaml](./manual-github-actions.yaml) into that directory.
+  * Customize `PACKAGE_MANAGER` to suit your needs, see the [possible values above.](#environment-variables)
+  * (Optional) Customize `OPTIONS` to suit your needs or delete
+
+By default this action is set to run on workflow dispatch, which means that you need to manually trigger the workflow run.
+If you would rather run it on a set schedule, you can switch to [schedule dispatch](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule).
 
 ### GitLab CI
 
@@ -219,7 +241,7 @@ Thus `https://[gitlab.domain/org/dependabot-script-repo]/pipeline_schedules` das
 * Clone or mirror this repository.
 * Copy `.gitlab-ci.example.yml` to `.gitlab-ci.yml` or set [a custom CI config path for direct usage](https://docs.gitlab.com/ee/ci/pipelines/settings.html#specify-a-custom-cicd-configuration-file).
 * [Set the required global variables](https://docs.gitlab.com/ee/ci/variables/#variables) used in [`./generic-update-script.rb`][generic-script].
-* Create [a pipeline schedule](https://docs.gitlab.com/ee/user/project/pipelines/schedules.html) for each managed repository.
+* Create [a pipeline schedule](https://docs.gitlab.com/ee/ci/pipelines/schedules.html) for each managed repository.
 * Set in the schedule the required variables:
   * `PROJECT_PATH`: `group/repository`
   * `PACKAGE_MANAGER_SET`: `bundler,composer,npm_and_yarn`
@@ -236,4 +258,4 @@ Thus `https://[gitlab.domain/org/dependabot-script-repo]/pipeline_schedules` das
 [github-script]: update-script.rb
 [generic-script]: generic-update-script.rb
 [dependabot-core]: https://github.com/dependabot/dependabot-core
-[dependabot]: https://docs.github.com/en/github/administering-a-repository/about-dependabot-version-updates
+[dependabot service]: https://docs.github.com/en/github/administering-a-repository/about-dependabot-version-updates
